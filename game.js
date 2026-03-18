@@ -13,9 +13,9 @@
         HEIGHT: 720,
         GROUND_Y: 580,
         PLAYER_X: 200,
-        PLAYER_SIZE: 44,
+        PLAYER_SIZE: 58,
         GRAVITY: 0.65,
-        JUMP_FORCE: -12.5,
+        JUMP_FORCE: -14.5,
         BASE_SPEED: 6,
         MAX_SPEED: 12,
         SPEED_RAMP: 0.0003, // speed increase per frame
@@ -26,6 +26,22 @@
         PARTICLE_POOL: 200,
         SEGMENT_WIDTH: 400,
     };
+
+    // ============================================
+    // LEVEL DEFINITIONS (10 levels)
+    // ============================================
+    const LEVELS = [
+        { id: 1, name: "GREEN HILLS",    seed: 1001, baseSpeed: 5,   maxSpeed: 8,   length: 8000,  color: "#00ff88" },
+        { id: 2, name: "NEON CITY",      seed: 2002, baseSpeed: 5.5, maxSpeed: 9,   length: 9000,  color: "#00d4ff" },
+        { id: 3, name: "CRYSTAL CAVES",  seed: 3003, baseSpeed: 6,   maxSpeed: 9.5, length: 10000, color: "#aa66ff" },
+        { id: 4, name: "FIRE TEMPLE",    seed: 4004, baseSpeed: 6,   maxSpeed: 10,  length: 10000, color: "#ff6622" },
+        { id: 5, name: "STORM PEAKS",    seed: 5005, baseSpeed: 6.5, maxSpeed: 10,  length: 11000, color: "#6688ff" },
+        { id: 6, name: "SHADOW REALM",   seed: 6006, baseSpeed: 6.5, maxSpeed: 10.5,length: 11000, color: "#ff3366" },
+        { id: 7, name: "CYBER GRID",     seed: 7007, baseSpeed: 7,   maxSpeed: 11,  length: 12000, color: "#00ffcc" },
+        { id: 8, name: "LAVA CORE",      seed: 8008, baseSpeed: 7,   maxSpeed: 11.5,length: 12000, color: "#ff4400" },
+        { id: 9, name: "VOID ABYSS",     seed: 9009, baseSpeed: 7.5, maxSpeed: 12,  length: 13000, color: "#cc00ff" },
+        { id: 10,name: "FINAL DASH",     seed: 1010, baseSpeed: 8,   maxSpeed: 13,  length: 14000, color: "#ffd700" },
+    ];
 
     // ============================================
     // CANVAS + SCALING
@@ -61,6 +77,8 @@
     let speed = CFG.BASE_SPEED;
     let isMobile = false;
     let bestTime = null;
+    let currentLevel = null; // LEVELS[i] or null for random/multiplayer
+    let unlockedLevel = parseInt(localStorage.getItem("dash_unlocked") || "1", 10);
 
     // Shake
     let shakeAmount = 0, shakeDuration = 0;
@@ -333,12 +351,15 @@
         platforms = [];
         decorations = [];
 
-        const segmentCount = Math.floor(CFG.LEVEL_LENGTH / CFG.SEGMENT_WIDTH);
+        const levelLength = currentLevel ? currentLevel.length : CFG.LEVEL_LENGTH;
+        const levelDiffMul = currentLevel ? (currentLevel.id - 1) / 9 : 0.5; // 0..1 across levels
+        const segmentCount = Math.floor(levelLength / CFG.SEGMENT_WIDTH);
         let lastGapEnd = 0;
 
         for (let seg = 0; seg < segmentCount; seg++) {
             const sx = seg * CFG.SEGMENT_WIDTH + 600; // offset from start
-            const difficulty = Math.min(seg / segmentCount, 1); // 0 to 1
+            const withinLevel = Math.min(seg / segmentCount, 1); // 0 to 1 within this level
+            const difficulty = Math.min(withinLevel * 0.6 + levelDiffMul * 0.6, 1);
             const r = rng();
 
             if (seg < 2) {
@@ -386,7 +407,7 @@
                 }
             } else if (r < 0.6) {
                 // Pillar
-                const pillarH = 50 + rng() * (40 + difficulty * 30); // max ~120, always jumpable
+                const pillarH = 50 + rng() * (40 + difficulty * 40); // max ~130, always jumpable
                 obstacles.push({
                     type: "pillar",
                     x: sx,
@@ -627,7 +648,8 @@
     }
 
     function getProgress() {
-        return Math.min(scrollX / CFG.LEVEL_LENGTH, 1);
+        const lvlLen = currentLevel ? currentLevel.length : CFG.LEVEL_LENGTH;
+        return Math.min(scrollX / lvlLen, 1);
     }
 
     // Find a safe scroll position to respawn: flat ground, no obstacles nearby
@@ -676,8 +698,9 @@
     function continueGame() {
         const safeX = findSafeSpawnPoint(deathScrollX);
         scrollX = safeX;
-        speed = CFG.BASE_SPEED + safeX * CFG.SPEED_RAMP;
-        speed = Math.min(speed, CFG.MAX_SPEED);
+        const bSpd = currentLevel ? currentLevel.baseSpeed : CFG.BASE_SPEED;
+        const mSpd = currentLevel ? currentLevel.maxSpeed : CFG.MAX_SPEED;
+        speed = Math.min(bSpd + safeX * CFG.SPEED_RAMP, mSpd);
 
         // Clear 3 seconds worth of obstacles ahead so player has flat runway
         const clearDistance = speed * 60 * 3; // speed * fps * seconds
@@ -875,9 +898,10 @@
         ctx.fillRect(0, CFG.GROUND_Y, CFG.WIDTH, CFG.HEIGHT - CFG.GROUND_Y);
 
         // Ground line with glow
-        ctx.strokeStyle = "#00d4ff";
+        const lvlColor = currentLevel ? currentLevel.color : "#00d4ff";
+        ctx.strokeStyle = lvlColor;
         ctx.lineWidth = 2;
-        ctx.shadowColor = "#00d4ff";
+        ctx.shadowColor = lvlColor;
         ctx.shadowBlur = 8;
 
         // Draw ground, skipping gaps
@@ -1050,7 +1074,8 @@
         bar.style.width = (progress * 100) + "%";
         icon.style.left = (progress * 100) + "%";
         document.getElementById("hud-timer").textContent = gameTime.toFixed(2) + "s";
-        document.getElementById("hud-attempt").textContent = `Attempt #${attempt}`;
+        const lvlLabel = currentLevel ? `Lv.${currentLevel.id} ${currentLevel.name}` : "RANDOM";
+        document.getElementById("hud-attempt").textContent = `${lvlLabel} — Attempt #${attempt}`;
     }
 
     function drawMultiplayerPlayers() {
@@ -1075,7 +1100,8 @@
     }
 
     function drawFinishLine() {
-        const fx = CFG.LEVEL_LENGTH + 600 - scrollX; // +600 for initial offset
+        const lvlLen = currentLevel ? currentLevel.length : CFG.LEVEL_LENGTH;
+        const fx = lvlLen + 600 - scrollX; // +600 for initial offset
         if (fx < -50 || fx > CFG.WIDTH + 50) return;
         // Checkered flag pattern
         ctx.save();
@@ -1117,7 +1143,9 @@
 
         if (gameState === "playing") {
             gameTime += dt / 1000;
-            speed = Math.min(CFG.BASE_SPEED + scrollX * CFG.SPEED_RAMP, CFG.MAX_SPEED);
+            const bSpd = currentLevel ? currentLevel.baseSpeed : CFG.BASE_SPEED;
+            const mSpd = currentLevel ? currentLevel.maxSpeed : CFG.MAX_SPEED;
+            speed = Math.min(bSpd + scrollX * CFG.SPEED_RAMP, mSpd);
             scrollX += speed;
 
             updatePlayer(dt);
@@ -1135,7 +1163,8 @@
             }
 
             // Check win
-            if (scrollX >= CFG.LEVEL_LENGTH && player && player.alive) {
+            const lvlLen = currentLevel ? currentLevel.length : CFG.LEVEL_LENGTH;
+            if (scrollX >= lvlLen && player && player.alive) {
                 winLevel();
             }
 
@@ -1210,16 +1239,32 @@
         }
 
         // Update best time
-        const prevBest = bestTime;
         if (!bestTime || gameTime < bestTime) bestTime = gameTime;
+
+        // Unlock next level
+        if (currentLevel && currentLevel.id < 10) {
+            const next = currentLevel.id + 1;
+            if (next > unlockedLevel) {
+                unlockedLevel = next;
+                localStorage.setItem("dash_unlocked", String(unlockedLevel));
+            }
+        }
 
         if (mpState && ws) {
             ws.send(JSON.stringify({ type: "player_finished", time: gameTime }));
-            // Wait for results from server
         } else {
             showScreen("screen-win");
             document.getElementById("win-time").textContent = `Time: ${gameTime.toFixed(2)}s`;
             document.getElementById("win-best").textContent = bestTime ? `Best: ${bestTime.toFixed(2)}s` : "Best: --";
+            document.getElementById("win-level-name").textContent = currentLevel ? currentLevel.name : "RANDOM";
+            // Show/hide next level button
+            const nextBtn = document.getElementById("btn-next-level");
+            if (currentLevel && currentLevel.id < 10) {
+                nextBtn.classList.remove("hidden");
+                nextBtn.textContent = `NEXT: ${LEVELS[currentLevel.id].name}`;
+            } else {
+                nextBtn.classList.add("hidden");
+            }
         }
     }
 
@@ -1227,11 +1272,11 @@
     // GAME STATE MANAGEMENT
     // ============================================
     function startGame(levelSeed) {
-        seed = levelSeed || Math.floor(Math.random() * 2147483647);
+        seed = levelSeed || (currentLevel ? currentLevel.seed : Math.floor(Math.random() * 2147483647));
         generateLevel(seed);
         player = createPlayer();
         scrollX = 0;
-        speed = CFG.BASE_SPEED;
+        speed = currentLevel ? currentLevel.baseSpeed : CFG.BASE_SPEED;
         gameTime = 0;
         shakeAmount = 0;
         shakeDuration = 0;
@@ -1255,6 +1300,7 @@
 
     function backToMenu() {
         gameState = "menu";
+        currentLevel = null;
         hideAllScreens();
         showScreen("screen-start");
         document.getElementById("hud").classList.add("hidden");
@@ -1464,6 +1510,29 @@
         };
     }
 
+    function renderLevelSelect() {
+        const grid = document.getElementById("level-grid");
+        grid.innerHTML = "";
+        LEVELS.forEach((lvl) => {
+            const card = document.createElement("div");
+            card.className = "level-card" + (lvl.id > unlockedLevel ? " locked" : "");
+            card.style.borderColor = lvl.id <= unlockedLevel ? lvl.color : "";
+            if (lvl.id <= unlockedLevel) {
+                card.innerHTML = `<span class="level-num" style="color:${lvl.color}">${lvl.id}</span><span class="level-name">${lvl.name}</span>`;
+                card.addEventListener("click", () => {
+                    SFX.click();
+                    currentLevel = lvl;
+                    attempt = 1;
+                    bestTime = null;
+                    startGame();
+                });
+            } else {
+                card.innerHTML = `<span class="level-lock">🔒</span><span class="level-num">${lvl.id}</span><span class="level-name">${lvl.name}</span>`;
+            }
+            grid.appendChild(card);
+        });
+    }
+
     function showLobby() {
         hideAllScreens();
         showScreen("screen-lobby");
@@ -1617,9 +1686,9 @@
         // Start screen
         document.getElementById("btn-play").addEventListener("click", () => {
             SFX.click();
-            attempt = 1;
-            bestTime = null;
-            startGame();
+            hideAllScreens();
+            renderLevelSelect();
+            showScreen("screen-levels");
         });
 
         document.getElementById("btn-multiplayer").addEventListener("click", () => {
@@ -1664,6 +1733,13 @@
             showScreen("screen-start");
         });
 
+        // Level select
+        document.getElementById("btn-levels-back").addEventListener("click", () => {
+            SFX.click();
+            hideAllScreens();
+            showScreen("screen-start");
+        });
+
         // Death screen
         document.getElementById("btn-continue").addEventListener("click", () => {
             SFX.click();
@@ -1679,6 +1755,15 @@
         });
 
         // Win screen
+        document.getElementById("btn-next-level").addEventListener("click", () => {
+            SFX.click();
+            if (currentLevel && currentLevel.id < 10) {
+                currentLevel = LEVELS[currentLevel.id]; // next level (0-indexed: id is 1-based)
+                attempt = 1;
+                bestTime = null;
+                startGame();
+            }
+        });
         document.getElementById("btn-replay").addEventListener("click", () => {
             SFX.click();
             attempt++;

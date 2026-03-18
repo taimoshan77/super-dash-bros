@@ -37,6 +37,13 @@
         <p class="controls-hint">SPACE / CLICK / TAP to jump</p>
     </div>
 
+    <!-- Level Select -->
+    <div id="screen-levels" class="overlay hidden">
+        <h2 class="screen-title">SELECT LEVEL</h2>
+        <div id="level-grid" class="level-grid"></div>
+        <button class="menu-btn" id="btn-levels-back">BACK</button>
+    </div>
+
     <!-- Character Select -->
     <div id="screen-character" class="overlay hidden">
         <h2 class="screen-title">SELECT CHARACTER</h2>
@@ -75,6 +82,7 @@
     <!-- Win Screen -->
     <div id="screen-win" class="overlay hidden">
         <h2 class="win-title">LEVEL COMPLETE!</h2>
+        <p id="win-level-name" class="win-level-name"></p>
         <p id="win-time">Time: 0.00s</p>
         <p id="win-best">Best: --</p>
         <div id="win-name-row" class="name-input-row">
@@ -82,7 +90,8 @@
             <button class="menu-btn small" id="btn-submit-score">SUBMIT</button>
         </div>
         <div class="menu-buttons">
-            <button class="menu-btn primary" id="btn-replay">PLAY AGAIN</button>
+            <button class="menu-btn primary hidden" id="btn-next-level">NEXT LEVEL</button>
+            <button class="menu-btn" id="btn-replay">PLAY AGAIN</button>
             <button class="menu-btn" id="btn-win-menu">MENU</button>
         </div>
     </div>

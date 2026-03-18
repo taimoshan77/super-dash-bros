@@ -203,6 +203,73 @@ canvas {
     margin-bottom: 8px;
 }
 
+.win-level-name {
+    font-size: 14px;
+    color: #00d4ff;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+}
+
+/* ============================================
+   LEVEL SELECT
+   ============================================ */
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+    max-width: 600px;
+    width: 90%;
+}
+
+.level-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.03);
+    text-align: center;
+}
+
+.level-card:hover:not(.locked) {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.level-card.locked {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.level-num {
+    font-size: 24px;
+    font-weight: 900;
+    margin-bottom: 4px;
+}
+
+.level-name {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.level-card .level-lock {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 600px) {
+    .level-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .level-card { padding: 10px 6px; }
+    .level-num { font-size: 20px; }
+}
+
 /* ============================================
    HUD
    ============================================ */
