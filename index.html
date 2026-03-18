@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Super Dash Bros</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div id="hud-progress">
+            <div id="hud-progress-bar"></div>
+            <div id="hud-progress-icon">▶</div>
+        </div>
+        <div id="hud-timer">0.00s</div>
+        <div id="hud-attempt">Attempt #1</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="screen-start" class="overlay">
+        <div class="title-container">
+            <img id="logo-img" src="magadog.jpg" alt="Logo" class="logo-image">
+            <h1 class="game-title">SUPER DASH BROS</h1>
+            <p class="subtitle">GEOMETRY DASH STYLE</p>
+        </div>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="btn-play">PLAY</button>
+            <button class="menu-btn" id="btn-multiplayer">MULTIPLAYER</button>
+            <button class="menu-btn" id="btn-leaderboard">LEADERBOARD</button>
+            <button class="menu-btn" id="btn-character">CHARACTER</button>
+        </div>
+        <p class="controls-hint">SPACE / CLICK / TAP to jump</p>
+    </div>
+
+    <!-- Character Select -->
+    <div id="screen-character" class="overlay hidden">
+        <h2 class="screen-title">SELECT CHARACTER</h2>
+        <div class="character-grid">
+            <div class="char-option selected" data-char="k1">
+                <img src="k1-right.png" alt="K1">
+                <span>K1</span>
+            </div>
+            <div class="char-option" data-char="k2">
+                <img src="k2-right.png" alt="K2">
+                <span>K2</span>
+            </div>
+        </div>
+        <button class="menu-btn" id="btn-char-back">BACK</button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="screen-leaderboard" class="overlay hidden">
+        <h2 class="screen-title">LEADERBOARD</h2>
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+        <button class="menu-btn" id="btn-lb-back">BACK</button>
+    </div>
+
+    <!-- Death Screen -->
+    <div id="screen-dead" class="overlay hidden">
+        <h2 class="death-title">CRASHED!</h2>
+        <p id="death-progress">Progress: 0%</p>
+        <p id="death-time">Time: 0.00s</p>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="btn-retry">RETRY</button>
+            <button class="menu-btn" id="btn-back-menu">MENU</button>
+        </div>
+    </div>
+
+    <!-- Win Screen -->
+    <div id="screen-win" class="overlay hidden">
+        <h2 class="win-title">LEVEL COMPLETE!</h2>
+        <p id="win-time">Time: 0.00s</p>
+        <p id="win-best">Best: --</p>
+        <div id="win-name-row" class="name-input-row">
+            <input type="text" id="win-name" placeholder="Your name" maxlength="12">
+            <button class="menu-btn small" id="btn-submit-score">SUBMIT</button>
+        </div>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="btn-replay">PLAY AGAIN</button>
+            <button class="menu-btn" id="btn-win-menu">MENU</button>
+        </div>
+    </div>
+
+    <!-- Multiplayer Menu -->
+    <div id="screen-mp" class="overlay hidden">
+        <h2 class="screen-title">MULTIPLAYER</h2>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="btn-create-room">CREATE ROOM</button>
+            <button class="menu-btn" id="btn-quick-match">QUICK MATCH</button>
+            <div class="join-row">
+                <input type="text" id="input-room-code" placeholder="ROOM CODE" maxlength="4" class="code-input">
+                <button class="menu-btn small" id="btn-join-room">JOIN</button>
+            </div>
+        </div>
+        <button class="menu-btn" id="btn-mp-back">BACK</button>
+    </div>
+
+    <!-- Room Lobby -->
+    <div id="screen-lobby" class="overlay hidden">
+        <h2 class="screen-title">ROOM: <span id="lobby-code">----</span></h2>
+        <div id="lobby-players" class="lobby-players"></div>
+        <p id="lobby-status">Waiting for players...</p>
+        <div class="menu-buttons">
+            <button class="menu-btn primary hidden" id="btn-start-race">START RACE</button>
+            <button class="menu-btn" id="btn-leave-room">LEAVE</button>
+        </div>
+    </div>
+
+    <!-- Countdown -->
+    <div id="screen-countdown" class="overlay hidden">
+        <div id="countdown-number" class="countdown-number">3</div>
+    </div>
+
+    <!-- Race Results -->
+    <div id="screen-results" class="overlay hidden">
+        <h2 class="screen-title">RACE RESULTS</h2>
+        <div id="results-list" class="results-list"></div>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="btn-results-menu">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <!-- Queue Waiting -->
+    <div id="screen-queue" class="overlay hidden">
+        <h2 class="screen-title">FINDING MATCH...</h2>
+        <div class="spinner"></div>
+        <button class="menu-btn" id="btn-cancel-queue">CANCEL</button>
+    </div>
+
+    <!-- Landscape Hint (mobile) -->
+    <div id="landscape-hint" class="hidden">
+        <p>↻ Rotate to landscape for best experience</p>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications"></div>
+
+    <!-- Mute Button -->
+    <button id="btn-mute" class="mute-btn">♪</button>
+
+    <script src="game.js"></script>
+</body>
+</html>

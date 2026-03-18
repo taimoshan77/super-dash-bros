@@ -1,0 +1,12 @@
+{
+  "name": "super-dash-bros",
+  "version": "1.0.0",
+  "description": "Geometry Dash-inspired browser game with ghost racing and multiplayer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
