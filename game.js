@@ -90,10 +90,52 @@
     const spriteNames = ["k1-right", "k2-right"];
     let spritesLoaded = 0;
 
+    function removeBackground(img) {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const cx = c.getContext("2d");
+        cx.drawImage(img, 0, 0);
+        const imgData = cx.getImageData(0, 0, c.width, c.height);
+        const d = imgData.data;
+        // Sample corners to detect background color
+        const samples = [
+            0, // top-left
+            (c.width - 1) * 4, // top-right
+            (c.height - 1) * c.width * 4, // bottom-left
+            ((c.height - 1) * c.width + c.width - 1) * 4, // bottom-right
+        ];
+        let bgR = 0, bgG = 0, bgB = 0, count = 0;
+        for (const i of samples) {
+            if (d[i + 3] > 0) { bgR += d[i]; bgG += d[i + 1]; bgB += d[i + 2]; count++; }
+        }
+        if (count > 0) { bgR = bgR / count; bgG = bgG / count; bgB = bgB / count; }
+        // Remove pixels similar to background color
+        const threshold = 40;
+        for (let i = 0; i < d.length; i += 4) {
+            const dr = Math.abs(d[i] - bgR);
+            const dg = Math.abs(d[i + 1] - bgG);
+            const db = Math.abs(d[i + 2] - bgB);
+            const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+            if (dist < threshold) {
+                d[i + 3] = 0; // fully transparent
+            } else if (dist < threshold * 2) {
+                // Soft edge: fade alpha based on distance
+                const fade = (dist - threshold) / threshold;
+                d[i + 3] = Math.min(d[i + 3], Math.floor(fade * 255));
+            }
+        }
+        cx.putImageData(imgData, 0, 0);
+        return c;
+    }
+
     function loadSprites() {
         spriteNames.forEach((name) => {
             const img = new Image();
-            img.onload = () => { spritesLoaded++; };
+            img.onload = () => {
+                sprites[name] = removeBackground(img);
+                spritesLoaded++;
+            };
             img.src = name + ".png";
             sprites[name] = img;
         });
@@ -557,6 +599,7 @@
     function killPlayer() {
         if (!player || !player.alive) return;
         player.alive = false;
+        deathScrollX = scrollX;
         SFX.death();
         triggerShake(8, 300);
         spawnDeathExplosion(player.x + CFG.PLAYER_SIZE / 2, player.y + CFG.PLAYER_SIZE / 2);
@@ -585,6 +628,66 @@
 
     function getProgress() {
         return Math.min(scrollX / CFG.LEVEL_LENGTH, 1);
+    }
+
+    // Find a safe scroll position to respawn: flat ground, no obstacles nearby
+    function findSafeSpawnPoint(deathScrollX) {
+        const safeZone = 200; // pixels of clear space needed around spawn
+        const searchStep = 20;
+        // Search backwards from a bit before death position
+        let candidate = deathScrollX - 100;
+
+        for (let tries = 0; tries < 80; tries++) {
+            if (candidate < 0) { candidate = 0; break; }
+            if (isSafeAt(candidate, safeZone)) return candidate;
+            candidate -= searchStep;
+        }
+        // Fallback: just use what we found (clamped to 0)
+        return Math.max(candidate, 0);
+    }
+
+    function isSafeAt(testScrollX, safeZone) {
+        // The player sits at CFG.PLAYER_X on screen.
+        // In world coords that means worldX = testScrollX + CFG.PLAYER_X
+        const worldLeft = testScrollX + CFG.PLAYER_X - safeZone / 2;
+        const worldRight = testScrollX + CFG.PLAYER_X + CFG.PLAYER_SIZE + safeZone / 2;
+
+        // Must not be over a gap
+        for (const ob of obstacles) {
+            if (ob.type === "gap") {
+                // Gap overlaps the landing zone?
+                if (ob.x + ob.w > worldLeft && ob.x < worldRight) return false;
+            }
+        }
+
+        // No deadly obstacles within the safe zone
+        for (const ob of obstacles) {
+            if (ob.type === "gap") continue;
+            const obLeft = ob.x;
+            const obRight = ob.x + ob.w;
+            if (obRight > worldLeft && obLeft < worldRight) return false;
+        }
+
+        return true;
+    }
+
+    let deathScrollX = 0; // stored when player dies
+
+    function continueGame() {
+        const safeX = findSafeSpawnPoint(deathScrollX);
+        scrollX = safeX;
+        speed = CFG.BASE_SPEED + safeX * CFG.SPEED_RAMP;
+        speed = Math.min(speed, CFG.MAX_SPEED);
+        player = createPlayer();
+        shakeAmount = 0;
+        shakeDuration = 0;
+        particles.releaseAll();
+        trailTimer = 0;
+        // Keep gameTime running — no reset
+        // Ghost recording continues from where it was (won't be a clean recording but that's fine)
+        gameState = "playing";
+        hideAllScreens();
+        document.getElementById("hud").classList.remove("hidden");
     }
 
     // ============================================
@@ -909,7 +1012,7 @@
 
         const spriteName = charName + "-right";
         const sprite = sprites[spriteName];
-        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        if (sprite && (sprite instanceof HTMLCanvasElement || (sprite.complete && sprite.naturalWidth > 0))) {
             ctx.drawImage(sprite, -CFG.PLAYER_SIZE / 2, -CFG.PLAYER_SIZE / 2, CFG.PLAYER_SIZE, CFG.PLAYER_SIZE);
         } else {
             // Fallback colored square
@@ -1045,6 +1148,7 @@
         }
 
         // ── DRAW ──
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.translate(offsetX, offsetY);
         ctx.scale(scale, scale);
@@ -1551,6 +1655,10 @@
         });
 
         // Death screen
+        document.getElementById("btn-continue").addEventListener("click", () => {
+            SFX.click();
+            continueGame();
+        });
         document.getElementById("btn-retry").addEventListener("click", () => {
             SFX.click();
             restartGame();
