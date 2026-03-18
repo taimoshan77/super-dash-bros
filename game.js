@@ -386,7 +386,7 @@
                 }
             } else if (r < 0.6) {
                 // Pillar
-                const pillarH = 60 + rng() * (80 + difficulty * 60);
+                const pillarH = 50 + rng() * (40 + difficulty * 30); // max ~120, always jumpable
                 obstacles.push({
                     type: "pillar",
                     x: sx,
@@ -678,13 +678,23 @@
         scrollX = safeX;
         speed = CFG.BASE_SPEED + safeX * CFG.SPEED_RAMP;
         speed = Math.min(speed, CFG.MAX_SPEED);
+
+        // Clear 3 seconds worth of obstacles ahead so player has flat runway
+        const clearDistance = speed * 60 * 3; // speed * fps * seconds
+        const worldStart = safeX + CFG.PLAYER_X - 50;
+        const worldEnd = safeX + CFG.PLAYER_X + clearDistance;
+        obstacles = obstacles.filter((ob) => {
+            return ob.x + ob.w <= worldStart || ob.x >= worldEnd;
+        });
+        platforms = platforms.filter((p) => {
+            return p.x + p.w <= worldStart || p.x >= worldEnd;
+        });
+
         player = createPlayer();
         shakeAmount = 0;
         shakeDuration = 0;
         particles.releaseAll();
         trailTimer = 0;
-        // Keep gameTime running — no reset
-        // Ghost recording continues from where it was (won't be a clean recording but that's fine)
         gameState = "playing";
         hideAllScreens();
         document.getElementById("hud").classList.remove("hidden");
